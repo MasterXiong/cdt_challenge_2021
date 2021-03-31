@@ -63,6 +63,10 @@ class WorldModelling
     bool first_node_;
     bool first_frontier_;
 
+    float d_square_to_last_node_threshold;
+    float d_square_neighbor_threshold;
+    float traversable_threshold;
+
 public:
     // Constructor
     WorldModelling(ros::NodeHandle &nh);
