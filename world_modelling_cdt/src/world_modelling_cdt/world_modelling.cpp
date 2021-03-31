@@ -1,4 +1,6 @@
 #include <world_modelling_cdt/world_modelling.h>
+#include <cmath>
+#include <iostream>
 
 WorldModelling::WorldModelling(ros::NodeHandle &nh)
     : x_last_(0.f),
@@ -6,7 +8,10 @@ WorldModelling::WorldModelling(ros::NodeHandle &nh)
       theta_last_(0.f),
       num_nodes_(0),
       first_node_(true),
-      first_frontier_(true)
+      first_frontier_(true), 
+      d_square_to_last_node_threshold(1.), 
+      d_square_neighbor_threshold(4.), 
+      traversable_threshold(.2)
 {
     // Read parameters
     readParameters(nh);
@@ -98,34 +103,40 @@ bool WorldModelling::updateGraph(const float &x, const float &y, const float &th
     // You may need to change this flag with some conditions
     bool create_new_node = true;
 
-    // if the condition is satisfied, you should create a new node and add it to the graph
-    if(first_node_)
-    {
-        // Here we briefly show how to fill the data
-        cdt_msgs::GraphNode new_node;
-        new_node.pose.position.x = x;
-        new_node.pose.position.y = y;
-        new_node.id.data = num_nodes_; // The id is simply the number of the node
-        
-        // Adding neighbors
-        std_msgs::Int32 neighbor_id;
-        neighbor_id.data = 0;
-        new_node.neighbors_id.push_back(neighbor_id);  // here we fill the neighbors of the new_node
-
-        // Finally add the new node to the graph (since all the properties are filled)
-        exploration_graph_.nodes.push_back(new_node);
-
-        num_nodes_++; // Increase the number of added nodes
-
-        first_node_ = false; // This is to avoid creating more than one nodes. This is just for the example, you may need to remove this
-
-        return true;
-    }
-    else
-    {
-        // We didn't create a new node
+    // do not update if the current pose is too close to the previous node
+    double d_square_to_last_node = std::pow(x - x_last_, 2) + std::pow(y - y_last_, 2);
+    if (d_square_to_last_node < d_square_to_last_node_threshold)
         return false;
+
+    std::cout << x_last_ << "  " << y_last_ << std::endl;
+
+    // if the condition is satisfied, you should create a new node and add it to the graph
+    // Here we briefly show how to fill the data
+    cdt_msgs::GraphNode new_node;
+    new_node.pose.position.x = x;
+    new_node.pose.position.y = y;
+    new_node.id.data = num_nodes_; // The id is simply the number of the node
+    
+    // Adding neighbors
+    // TODO: check traversability of the generated edge
+    double d_square;
+    for (auto node : exploration_graph_.nodes) {
+        d_square = std::pow(x - node.pose.position.x, 2) + std::pow(y - node.pose.position.y, 2);
+        if (d_square < d_square_neighbor_threshold) {
+            new_node.neighbors_id.push_back(node.id);
+            node.neighbors_id.push_back(new_node.id);
+        }
     }
+
+    // Finally add the new node to the graph (since all the properties are filled)
+    exploration_graph_.nodes.push_back(new_node);
+    // update the current node as the last node for the next update
+    x_last_ = x;
+    y_last_ = y;
+
+    num_nodes_++; // Increase the number of added nodes
+
+    return true;
 }
 
 void WorldModelling::computeTraversability(const grid_map::GridMap &grid_map)
@@ -149,7 +160,7 @@ void WorldModelling::computeTraversability(const grid_map::GridMap &grid_map)
             // TODO Fill the traversability at each position using some criterion based on the other layers
             // How can we figure out if an area is traversable or not?
             // YOu should fill with a 1.0 if it's traversable, and -1.0 in the other case
-            traversability_.at("traversability", *iterator) = -1.0;
+            traversability_.at("traversability", *iterator) = 2 * (float)(traversability_.at("elevation", *iterator) < traversable_threshold) - 1.;
         }
     }
 
