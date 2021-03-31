@@ -105,37 +105,38 @@ cv::Mat ObjectDetector::applyColourFilter(const cv::Mat &in_image_bgr, const Col
 {   
     std::string folder_path = "/home/yifu/tmp/cdt_drs/";
     std::string count_str = std::to_string(count);
-    // std::cout << folder_path+count_str << std::endl;
-    std::string input_path=folder_path+count_str+"input.png";
-    std::string mask_path=folder_path+count_str+"mask.png";
-    std::string hsv_path=folder_path+count_str+"hsv.png";
+    std::string input_path=folder_path+"input.png";
+    std::string mask_path=folder_path+"mask.png";
+    std::string hsv_path=folder_path+"hsv.png";
+    if (count==0){std::cout << "image saved to " + folder_path << std::endl;}
+    
 
     // Here you should apply some binary threhsolds on the image to detect the colors
     // The output should be a binary mask indicating where the object of a given color is located
     cv::Mat mask,in_image_hsv;
     cv::cvtColor(in_image_bgr,in_image_hsv, cv::COLOR_BGR2HSV);
     if (colour == Colour::RED) {
-        // std::cout << in_image_hsv.at<float>(110,100) << std::endl;
+        
         inRange(in_image_hsv, cv::Scalar(  0,  100,  0), cv::Scalar( 5, 255, 255), mask);
         // inRange(in_image_hsv, cv::Scalar(  170,  0,  0), cv::Scalar( 180, 255, 255), mask);
         // cv::Mat mask = mask1 | mask2;
     } else if (colour == Colour::YELLOW) {
-        inRange(in_image_bgr, cv::Scalar(  15,  0,  0), cv::Scalar( 36, 255, 255), mask);
+        inRange(in_image_hsv, cv::Scalar(  28,  150,  0), cv::Scalar( 33, 255, 255), mask);
     } else if (colour == Colour::GREEN) {
-        inRange(in_image_bgr, cv::Scalar(  40,  0,  0), cv::Scalar( 70, 255, 255), mask);
+        inRange(in_image_hsv, cv::Scalar(  40,  0,  0), cv::Scalar( 70, 255, 255), mask);
     } else if (colour == Colour::BLUE) {
-        inRange(in_image_bgr, cv::Scalar(  90,  0,  0), cv::Scalar( 128, 255, 255), mask);
+        inRange(in_image_hsv, cv::Scalar(  118,  0,  0), cv::Scalar( 123, 255, 255), mask);
     } else {
         // Report color not implemented
         ROS_ERROR_STREAM("[ObjectDetector::colourFilter] colour (" << colour << "  not implemented!");
     }
     
-    if (count == 0) {
+    if (count == 2) {
         cv::imwrite(input_path, in_image_bgr);
         cv::imwrite(mask_path, mask);
         cv::imwrite(hsv_path, in_image_hsv);
     } 
-    count = (count+1)%20;
+    count = ((count+1)%40)+1;
     // We return the mask, that will be used later
 
     return mask;
@@ -167,7 +168,7 @@ bool ObjectDetector::recognizeDog(const cv::Mat &in_image, const ros::Time &in_t
 
     // TODO: the functions we use below should be filled to make this work
     cv::Mat in_image_red = applyColourFilter(in_image, Colour::RED);
-    // cv::Mat in_image_red = applyColourFilter(in_image, Colour::GREEN);
+    // cv::Mat in_image_red = applyColourFilter(in_image, Colour::YELLOW);
     cv::Mat in_image_bounding_box = applyBoundingBox(in_image_red, dog_image_center_x, dog_image_center_y, dog_image_width, dog_image_height);
 
     // Note: Almost everything below should be kept as it is
