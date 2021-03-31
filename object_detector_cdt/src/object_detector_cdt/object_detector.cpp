@@ -1,5 +1,6 @@
 #include <object_detector_cdt/object_detector.h>
 #include <iostream>
+#include <cmath>
 
 ObjectDetector::ObjectDetector(ros::NodeHandle &nh)
 {
@@ -164,6 +165,30 @@ cv::Mat ObjectDetector::applyBoundingBox(const cv::Mat1b &in_mask, double &x, do
     return drawing;
 }
 
+int ObjectDetector::checkBoxPosition(const double x, const double y, const double width, const double height) {
+    // condition 1: a part of the object is missed from the camera
+    // i.e., the bounding box is close to the image bound
+    if ((x - width / 2. < 5.) or (x + width / 2. > 640. - 5.))
+        return 1;
+    if ((y - height / 2. < 5.) or (y + height / 2. > 480. - 5.))
+        return 1;
+    // condition 2: the object should not be far away from the camera
+    // i.e., width and height should be large enough
+    if (width < 640 / 20.)
+        return 2;
+    if (height < 480. / 20.)
+        return 2;
+    // condition 3: the object should be close to the center of the image
+    double d_x_to_center = abs(x - camera_cx_);
+    if (d_x_to_center > 640. / 20.)
+        return 3;
+    double d_y_to_center = abs(y - camera_cy_);
+    if (d_y_to_center > 480. / 20.)
+        return 3;
+
+    return 0;
+}
+
 bool ObjectDetector::recognizeDog(const cv::Mat &in_image, const ros::Time &in_timestamp, 
                                   const double& robot_x, const double& robot_y, const double& robot_theta,
                                   cdt_msgs::Object &out_new_object)
@@ -178,6 +203,20 @@ bool ObjectDetector::recognizeDog(const cv::Mat &in_image, const ros::Time &in_t
     cv::Mat in_image_red = applyColourFilter(in_image, Colour::RED);
     // cv::Mat in_image_red = applyColourFilter(in_image, Colour::GREEN);
     cv::Mat in_image_bounding_box = applyBoundingBox(in_image_red, dog_image_center_x, dog_image_center_y, dog_image_width, dog_image_height);
+    int check_box = checkBoxPosition(dog_image_center_x, dog_image_center_y, dog_image_width, dog_image_height);
+    if (check_box == 1) {
+        std::cout << "Only a part of the object is in the image" << std::endl;
+        return false;
+    } else if (check_box == 2) {
+        std::cout << "The object is not close enough to the camera" << std::endl;
+        return false;
+    } else if (check_box == 3) {
+        std::cout << "The object is not close enough to the image center" << std::endl;
+        return false;
+    } else {
+        std::cout << "Successfully detect" << std::endl;
+    }
+
 
     // Note: Almost everything below should be kept as it is
 

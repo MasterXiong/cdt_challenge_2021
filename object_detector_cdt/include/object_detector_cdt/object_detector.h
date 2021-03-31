@@ -79,6 +79,7 @@ private:
 
     // Detects the specified colour within the input image (BGR)
     cv::Mat applyBoundingBox(const cv::Mat1b &in_mask, double &x, double &y, double &width, double &height);
+    int checkBoxPosition(const double x, const double y, const double width, const double height);
 
     // Implements the procedures to recognize objects
     bool recognizeDog(const cv::Mat &in_image, const ros::Time &in_timestamp, 
