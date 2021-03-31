@@ -82,9 +82,9 @@ private:
     int checkBoxPosition(const double x, const double y, const double width, const double height);
 
     // Implements the procedures to recognize objects
-    bool recognizeDog(const cv::Mat &in_image, const ros::Time &in_timestamp, 
+    bool recognizeObject(const cv::Mat &in_image, const ros::Time &in_timestamp, 
                       const double& robot_x, const double& robot_y, const double& robot_theta,
-                      cdt_msgs::Object &out_new_object);
+                      cdt_msgs::Object &out_new_object, const std::string object_clas);
 
     
     // Utils

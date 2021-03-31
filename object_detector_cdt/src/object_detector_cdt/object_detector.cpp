@@ -1,6 +1,9 @@
 #include <object_detector_cdt/object_detector.h>
 #include <iostream>
 #include <cmath>
+// parameters
+int count = 0;
+std::string folder_path = "/home/yifu/tmp/cdt_drs/";
 
 ObjectDetector::ObjectDetector(ros::NodeHandle &nh)
 {
@@ -78,7 +81,7 @@ void ObjectDetector::imageCallback(const sensor_msgs::ImageConstPtr &in_msg)
     // if(!wasObjectDetected("dog")) // TODO: implement a better check
     {
         cdt_msgs::Object new_object;
-        bool valid_object = recognizeDog(image, timestamp, x, y, theta, new_object);
+        bool valid_object = recognizeDog(image, timestamp, x, y, theta, new_object,"dog");
 
         // If recognized, add to list of detected objects
         if (valid_object)
@@ -102,10 +105,10 @@ void ObjectDetector::convertMessageToImage(const sensor_msgs::ImageConstPtr &in_
     out_timestamp = in_msg->header.stamp;
 }
 
-int count = 0;
+
 cv::Mat ObjectDetector::applyColourFilter(const cv::Mat &in_image_bgr, const Colour &colour)
 {   
-    std::string folder_path = "/home/cdt2021/Pictures/";
+    
     std::string count_str = std::to_string(count);
     std::string input_path=folder_path+"input.png";
     std::string mask_path=folder_path+"mask.png";
@@ -160,7 +163,7 @@ cv::Mat ObjectDetector::applyBoundingBox(const cv::Mat1b &in_mask, double &x, do
     // code for visualization
     cv::rectangle(drawing, bound_rect.tl(), bound_rect.br(), cv::Scalar(255, 0, 0), 2);
     if (count_2 == 0)
-        cv::imwrite("/home/cdt2021/Pictures/box.png", drawing);
+        cv::imwrite(folder_path+"bounding box.png", drawing);
     count_2 = (count_2 + 1) % 20;
 
     return drawing;
@@ -169,30 +172,40 @@ cv::Mat ObjectDetector::applyBoundingBox(const cv::Mat1b &in_mask, double &x, do
 int ObjectDetector::checkBoxPosition(const double x, const double y, const double width, const double height) {
     // condition 1: a part of the object is missed from the camera
     // i.e., the bounding box is close to the image bound
-    if ((x - width / 2. < 5.) or (x + width / 2. > 640. - 5.))
+    double d_x_to_center = abs(x - camera_cx_);
+    double d_y_to_center = abs(y - camera_cy_);
+
+    if (((x - width / 2. < 5.) or (x + width / 2. > 640. - 5.)) || ((y - height / 2. < 5.) or (y + height / 2. > 480. - 5.)))
+    {
+        std::cout << "Only a part of the object is in the image" << std::endl;
         return 1;
-    if ((y - height / 2. < 5.) or (y + height / 2. > 480. - 5.))
-        return 1;
+    }
+
     // condition 2: the object should not be far away from the camera
     // i.e., width and height should be large enough
-    if (width < 640 / 20.)
+    else if ((width < 640 / 20.) || (height < 480. / 20.))
+    {
+        std::cout << "The object is not close enough to the camera" << std::endl;
         return 2;
-    if (height < 480. / 20.)
-        return 2;
-    // condition 3: the object should be close to the center of the image
-    double d_x_to_center = abs(x - camera_cx_);
-    if (d_x_to_center > 640. / 20.)
-        return 3;
-    double d_y_to_center = abs(y - camera_cy_);
-    if (d_y_to_center > 480. / 20.)
-        return 3;
+    }
 
-    return 0;
+    // condition 3: the object should be close to the center of the image
+    else if ((d_x_to_center > 640. / 20.) || (d_y_to_center > 480. / 20.))
+    {
+        std::cout << "The object is not close enough to the image center" << std::endl;
+        return 3;
+    }
+
+    else {
+        std::cout << "Successfully detect" << std::endl;
+        return 0;
+    }
+
 }
 
-bool ObjectDetector::recognizeDog(const cv::Mat &in_image, const ros::Time &in_timestamp, 
+bool ObjectDetector::recognizeObject(const cv::Mat &in_image, const ros::Time &in_timestamp, 
                                   const double& robot_x, const double& robot_y, const double& robot_theta,
-                                  cdt_msgs::Object &out_new_object)
+                                  cdt_msgs::Object &out_new_object, const std::string object_class)
 {
     // The values below will be filled by the following functions
     double dog_image_center_x;
@@ -205,26 +218,15 @@ bool ObjectDetector::recognizeDog(const cv::Mat &in_image, const ros::Time &in_t
     // cv::Mat in_image_red = applyColourFilter(in_image, Colour::YELLOW);
     cv::Mat in_image_bounding_box = applyBoundingBox(in_image_red, dog_image_center_x, dog_image_center_y, dog_image_width, dog_image_height);
     int check_box = checkBoxPosition(dog_image_center_x, dog_image_center_y, dog_image_width, dog_image_height);
-    if (check_box == 1) {
-        std::cout << "Only a part of the object is in the image" << std::endl;
+    std::cout << object_class << std::endl;
+    if (check_box!=0)
         return false;
-    } else if (check_box == 2) {
-        std::cout << "The object is not close enough to the camera" << std::endl;
-        return false;
-    } else if (check_box == 3) {
-        std::cout << "The object is not close enough to the image center" << std::endl;
-        return false;
-    } else {
-        std::cout << "Successfully detect" << std::endl;
-    }
-
-
     // Note: Almost everything below should be kept as it is
 
     // We convert the image position in pixels into "real" coordinates in the camera frame
     // We use the intrinsics to compute the depth
     double depth = dog_real_height_ / dog_image_height * camera_fy_;
-
+    {std::cout << "depth " << depth << object_class << " " << height << dog_image_height << std::endl;}
     // We now back-project the center using the  pinhole camera model
     // The result is in camera coordinates. Camera coordinates are weird, see note below
     double dog_position_camera_x = depth / camera_fx_ * (dog_image_center_x - camera_cx_);
@@ -246,7 +248,7 @@ bool ObjectDetector::recognizeDog(const cv::Mat &in_image, const ros::Time &in_t
     // We need to be careful when computing the final position of the object in global (fixed frame) coordinates
     // We need to introduce a correction givne by the robot orientation
     // Fill message
-    out_new_object.id = "dog";
+    out_new_object.id = object_class;
     out_new_object.header.stamp = in_timestamp;
     out_new_object.header.frame_id = fixed_frame_;
     out_new_object.position.x = robot_x +  cos(robot_theta)*dog_position_base_x + sin(-robot_theta) * dog_position_base_y;
@@ -258,7 +260,6 @@ bool ObjectDetector::recognizeDog(const cv::Mat &in_image, const ros::Time &in_t
 
 // TODO: Implement similar methods for other objects
 // HERE
-
 
 
 // Utils
