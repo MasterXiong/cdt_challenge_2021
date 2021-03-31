@@ -1,6 +1,9 @@
 #include <world_modelling_cdt/world_modelling.h>
 #include <cmath>
 #include <iostream>
+#include <math.h>
+
+#define PI 3.14159265
 
 WorldModelling::WorldModelling(ros::NodeHandle &nh)
     : x_last_(0.f),
@@ -11,7 +14,8 @@ WorldModelling::WorldModelling(ros::NodeHandle &nh)
       first_frontier_(true), 
       d_square_to_last_node_threshold(1.), 
       d_square_neighbor_threshold(4.), 
-      traversable_threshold(.2)
+      traversable_threshold(.2), 
+      frontier_distance(3.)
 {
     // Read parameters
     readParameters(nh);
@@ -171,7 +175,26 @@ void WorldModelling::findCurrentFrontiers(const float &x, const float &y, const 
 {
     // TODO: Here you need to create "frontiers" that denote the edges of the known space
     // They're used to guide robot to new places
+    std::cout << x << "  " << y << "  " << theta << std::endl;
+    float x_new, y_new;
+    float yaw, angle;
+    for (int i = -2; i <= 2; ++i) {
+        yaw = float(i * 30);
+        angle = (theta + float(yaw)) * PI / 180.;
+        x_new = x + frontier_distance * std::cos(angle);
+        y_new = y + frontier_distance * std::sin(angle);
+        if (traversability_.atPosition("traversability", grid_map::Position(x, y)) == 1) {
+            geometry_msgs::PointStamped frontier;
+            frontier.header.stamp = time;                  // We store the time the frontier was created
+            frontier.header.frame_id = input_fixed_frame_; // And the frame it's referenced to
+            frontier.point.x = x_new;                      // And the position, of course
+            frontier.point.y = y_new;
+            current_frontiers_.frontiers.push_back(frontier);
+            std::cout << "add a frontiers" << x_new << "  " << y_new << std::endl;
+        }
+    }
 
+    /*
     // If the direction needs a frontier, create one and store in current frontiers
     if (first_frontier_)
     {
@@ -190,6 +213,7 @@ void WorldModelling::findCurrentFrontiers(const float &x, const float &y, const 
 
         first_frontier_ = false; // This is to avoid creating more than one frontiers. This is just for the example, you may need to remove this
     }
+    */
 
     ROS_DEBUG_STREAM("[WorldModelling] Found " << current_frontiers_.frontiers.size() << " new frontiers");
 }

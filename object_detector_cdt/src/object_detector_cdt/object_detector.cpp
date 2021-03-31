@@ -81,7 +81,7 @@ void ObjectDetector::imageCallback(const sensor_msgs::ImageConstPtr &in_msg)
     // if(!wasObjectDetected("dog")) // TODO: implement a better check
     {
         cdt_msgs::Object new_object;
-        bool valid_object = recognizeDog(image, timestamp, x, y, theta, new_object,"dog");
+        bool valid_object = recognizeObject(image, timestamp, x, y, theta, new_object,"dog");
 
         // If recognized, add to list of detected objects
         if (valid_object)
@@ -226,7 +226,7 @@ bool ObjectDetector::recognizeObject(const cv::Mat &in_image, const ros::Time &i
     // We convert the image position in pixels into "real" coordinates in the camera frame
     // We use the intrinsics to compute the depth
     double depth = dog_real_height_ / dog_image_height * camera_fy_;
-    {std::cout << "depth " << depth << object_class << " " << height << dog_image_height << std::endl;}
+    //{std::cout << "depth " << depth << object_class << " " << height << dog_image_height << std::endl;}
     // We now back-project the center using the  pinhole camera model
     // The result is in camera coordinates. Camera coordinates are weird, see note below
     double dog_position_camera_x = depth / camera_fx_ * (dog_image_center_x - camera_cx_);
