@@ -1,5 +1,6 @@
 #include <object_detector_cdt/object_detector.h>
 #include <iostream>
+#include <cmath>
 
 ObjectDetector::ObjectDetector(ros::NodeHandle &nh)
 {
@@ -100,10 +101,11 @@ void ObjectDetector::convertMessageToImage(const sensor_msgs::ImageConstPtr &in_
     // Extract timestamp from header
     out_timestamp = in_msg->header.stamp;
 }
+
 int count = 0;
 cv::Mat ObjectDetector::applyColourFilter(const cv::Mat &in_image_bgr, const Colour &colour)
 {   
-    std::string folder_path = "/home/yifu/tmp/cdt_drs/";
+    std::string folder_path = "/home/cdt2021/Pictures/";
     std::string count_str = std::to_string(count);
     std::string input_path=folder_path+"input.png";
     std::string mask_path=folder_path+"mask.png";
@@ -142,18 +144,50 @@ cv::Mat ObjectDetector::applyColourFilter(const cv::Mat &in_image_bgr, const Col
     return mask;
 }
 
+int count_2 = 0;
 cv::Mat ObjectDetector::applyBoundingBox(const cv::Mat1b &in_mask, double &x, double &y, double &width, double &height) {
 
-    cv::Mat drawing; // it could be useful to fill this image if you want to debug
+    cv::Mat drawing(in_mask); // it could be useful to fill this image if you want to debug
 
     // TODO: Compute the bounding box using the mask
     // You need to return the center of the object in image coordinates, as well as a bounding box indicating its height and width (in pixels)
-    x = 0;
-    y = 0;
-    width = 30;
-    height = 50;
+    cv::Rect bound_rect = cv::boundingRect(in_mask);
+    width = double(bound_rect.width);
+    height = double(bound_rect.height);
+    x = bound_rect.x + width / 2.;
+    y = bound_rect.y + height / 2.;
+
+    // code for visualization
+    cv::rectangle(drawing, bound_rect.tl(), bound_rect.br(), cv::Scalar(255, 0, 0), 2);
+    if (count_2 == 0)
+        cv::imwrite("/home/cdt2021/Pictures/box.png", drawing);
+    count_2 = (count_2 + 1) % 20;
 
     return drawing;
+}
+
+int ObjectDetector::checkBoxPosition(const double x, const double y, const double width, const double height) {
+    // condition 1: a part of the object is missed from the camera
+    // i.e., the bounding box is close to the image bound
+    if ((x - width / 2. < 5.) or (x + width / 2. > 640. - 5.))
+        return 1;
+    if ((y - height / 2. < 5.) or (y + height / 2. > 480. - 5.))
+        return 1;
+    // condition 2: the object should not be far away from the camera
+    // i.e., width and height should be large enough
+    if (width < 640 / 20.)
+        return 2;
+    if (height < 480. / 20.)
+        return 2;
+    // condition 3: the object should be close to the center of the image
+    double d_x_to_center = abs(x - camera_cx_);
+    if (d_x_to_center > 640. / 20.)
+        return 3;
+    double d_y_to_center = abs(y - camera_cy_);
+    if (d_y_to_center > 480. / 20.)
+        return 3;
+
+    return 0;
 }
 
 bool ObjectDetector::recognizeDog(const cv::Mat &in_image, const ros::Time &in_timestamp, 
@@ -170,6 +204,20 @@ bool ObjectDetector::recognizeDog(const cv::Mat &in_image, const ros::Time &in_t
     cv::Mat in_image_red = applyColourFilter(in_image, Colour::RED);
     // cv::Mat in_image_red = applyColourFilter(in_image, Colour::YELLOW);
     cv::Mat in_image_bounding_box = applyBoundingBox(in_image_red, dog_image_center_x, dog_image_center_y, dog_image_width, dog_image_height);
+    int check_box = checkBoxPosition(dog_image_center_x, dog_image_center_y, dog_image_width, dog_image_height);
+    if (check_box == 1) {
+        std::cout << "Only a part of the object is in the image" << std::endl;
+        return false;
+    } else if (check_box == 2) {
+        std::cout << "The object is not close enough to the camera" << std::endl;
+        return false;
+    } else if (check_box == 3) {
+        std::cout << "The object is not close enough to the image center" << std::endl;
+        return false;
+    } else {
+        std::cout << "Successfully detect" << std::endl;
+    }
+
 
     // Note: Almost everything below should be kept as it is
 
