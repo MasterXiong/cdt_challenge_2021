@@ -22,7 +22,7 @@
 #include <iostream>
 
 // Colours
-enum Colour { RED=0, YELLOW=0, GREEN=1,  BLUE=2 };
+enum Colour { RED=0, YELLOW=3, GREEN=1,  BLUE=2 };
 
 class ObjectDetector
 {
