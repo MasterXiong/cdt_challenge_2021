@@ -189,8 +189,9 @@ void WorldModelling::findCurrentFrontiers(const float &x, const float &y, const 
     float x_new, y_new;
     float yaw, angle;
     float d_frontier_node;
-    for (int i = -3; i <= 3; ++i) {
-        yaw = float(i * 30);
+    //for (int d = 2; d <= int(frontier_distance); ++d) {
+    for (int i = -12; i < 12; ++i) {
+        yaw = float(i * 15);
         angle = theta + yaw * PI / 180.;
         x_new = x + frontier_distance * std::cos(angle);
         y_new = y + frontier_distance * std::sin(angle);
@@ -199,7 +200,7 @@ void WorldModelling::findCurrentFrontiers(const float &x, const float &y, const 
             bool close_to_pose_graph = false;
             for (auto node : exploration_graph_.nodes) {
                 d_frontier_node = std::hypot(x_new - node.pose.position.x, x_new - node.pose.position.y);
-                if (d_frontier_node < 2) {
+                if (d_frontier_node < distance_to_delete_frontier_) {
                     close_to_pose_graph = true;
                     break;
                 }
@@ -215,6 +216,7 @@ void WorldModelling::findCurrentFrontiers(const float &x, const float &y, const 
             current_frontiers_.frontiers.push_back(frontier);
         }
     }
+    //}
 
     /*
     // If the direction needs a frontier, create one and store in current frontiers
@@ -261,23 +263,26 @@ void WorldModelling::updateFrontiers(const float &x, const float &y, const float
 
     // Iterate
     float d_frontier_node;
-    for (auto frontier : frontiers_.frontiers)
+    for (auto frontier : current_frontiers_.frontiers)
     {
+        /*
         const float &frontier_x = frontier.point.x;
         const float &frontier_y = frontier.point.y;
 
         bool close_to_pose_graph = false;
         for (auto node : exploration_graph_.nodes) {
             d_frontier_node = std::hypot(frontier_x - node.pose.position.x, frontier_y - node.pose.position.y);
-            if (d_frontier_node < 2) {
+            if (d_frontier_node < distance_to_delete_frontier_) {
                 close_to_pose_graph = true;
                 break;
             }
         }
         if (close_to_pose_graph)
             continue;
+        */
 
         // Compute distance to frontier
+        /*
         float distance_to_frontier = std::hypot(frontier_x - x, frontier_y - y);
 
         // If it's close enough, skip
@@ -285,13 +290,14 @@ void WorldModelling::updateFrontiers(const float &x, const float &y, const float
         {
             continue;
         }
+        */
 
         // If the previous test are passed, add frontier to filtered list
-        current_frontiers_.frontiers.push_back(frontier);
+        frontiers_.frontiers.push_back(frontier);
     }
 
     // Finally, we update the frontiers using the current ones
-    frontiers_ = current_frontiers_;
+    //frontiers_ = filtered_frontiers;
 }
 
 void WorldModelling::publishData(const grid_map_msgs::GridMapInfo &in_grid_map_info)
