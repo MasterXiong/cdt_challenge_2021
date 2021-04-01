@@ -118,6 +118,7 @@ void WorldExplorer::frontiersCallback(const cdt_msgs::Frontiers& in_frontiers)
 void WorldExplorer::graphCallback(const cdt_msgs::Graph& in_graph)
 {
     // Set the graph structure to graph planner
+    exploration_graph_ = in_graph;
     graph_planner_.setGraph(in_graph);
 }
 
