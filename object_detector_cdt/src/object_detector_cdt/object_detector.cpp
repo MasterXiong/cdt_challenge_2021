@@ -139,43 +139,56 @@ void ObjectDetector::convertMessageToImage(const sensor_msgs::ImageConstPtr &in_
 
 cv::Mat ObjectDetector::applyColourFilter(const cv::Mat &in_image_bgr, const Colour &colour)
 {   
-    
+    cv::Mat dilated_img,erroded_img;
     std::string count_str = std::to_string(count);
     std::string clr_str = std::to_string(colour);
     std::string input_path=folder_path+"input.png";
     std::string mask_path=folder_path+clr_str+"mask.png";
     std::string hsv_path=folder_path+"hsv.png";
-    if (count==0){std::cout << "image saved to " + folder_path << std::endl;}
+    std::string dilated_path=folder_path+clr_str+"dilated.png";
+    std::string erroded_path=folder_path+clr_str+"erroded.png";
+    // if (count==0){std::cout << "image saved to " + folder_path << std::endl;}
     
 
     // Here you should apply some binary threhsolds on the image to detect the colors
     // The output should be a binary mask indicating where the object of a given color is located
     cv::Mat mask,in_image_hsv;
     cv::cvtColor(in_image_bgr,in_image_hsv, cv::COLOR_BGR2HSV);
+
+
     if (colour == Colour::RED) {
         
-        inRange(in_image_hsv, cv::Scalar(  0,  100,  0), cv::Scalar( 5, 255, 255), mask);
+        inRange(in_image_hsv, cv::Scalar(  0,  200,  0), cv::Scalar( 5, 255, 255), mask);
         // inRange(in_image_hsv, cv::Scalar(  170,  0,  0), cv::Scalar( 180, 255, 255), mask);
         // cv::Mat mask = mask1 | mask2;
     } else if (colour == Colour::YELLOW) {
-        inRange(in_image_hsv, cv::Scalar(  28,  150,  0), cv::Scalar( 33, 255, 255), mask);
+        inRange(in_image_hsv, cv::Scalar(  28,  230,  20), cv::Scalar( 33, 255, 255), mask);
     } else if (colour == Colour::GREEN) {
-        inRange(in_image_hsv, cv::Scalar(  40,  0,  0), cv::Scalar( 70, 255, 255), mask);
+        inRange(in_image_hsv, cv::Scalar(  55,  200,  0), cv::Scalar( 65, 255, 255), mask);
     } else if (colour == Colour::BLUE) {
-        inRange(in_image_hsv, cv::Scalar(  118,  0,  0), cv::Scalar( 123, 255, 255), mask);
+        inRange(in_image_hsv, cv::Scalar(  118,  200,  0), cv::Scalar( 123, 255, 255), mask);
     } else {
         // Report color not implemented
         ROS_ERROR_STREAM("[ObjectDetector::colourFilter] colour (" << colour << "  not implemented!");
     }
+    int dilation_size=1;
+    cv::Mat element = getStructuringElement( cv::MORPH_RECT,
+                    cv::Size( 2*dilation_size + 1, 2*dilation_size+1 ));
+    cv::erode(mask,erroded_img,element);
+    cv::imwrite(erroded_path, erroded_img);
+    cv::dilate(erroded_img,dilated_img,element);
+    cv::imwrite(dilated_path, dilated_img);
     
-    if (count <5 and colour==Colour::YELLOW) {
+    if (count <10) {
         cv::imwrite(input_path, in_image_bgr);
         cv::imwrite(mask_path, mask);
         cv::imwrite(hsv_path, in_image_hsv);
-    } 
-    count = ((count+1)%40)+1;
-    // We return the mask, that will be used later
 
+    }
+    count = (count+1)%160;
+    std::cout << count << std::endl;
+    // We return the mask, that will be used later
+    mask = dilated_img;
     return mask;
 }
 
@@ -222,7 +235,7 @@ int ObjectDetector::checkBoxPosition(const double x, const double y, const doubl
     }
 
     // condition 3: the object should be close to the center of the image
-    else if ((d_x_to_center > 640. / 11.) || (d_y_to_center > 480. / 11.))
+    else if ((d_x_to_center > 640. / 10) || (d_y_to_center > 480. / 10))
     {
         std::cout << "The object is not close enough to the image center" << d_x_to_center << " " << d_y_to_center << std::endl;
         return 3;
