@@ -153,7 +153,7 @@ void WorldExplorer::plan()
     getRobotPose2D(robot_x, robot_y, robot_theta);
 
     // We only run the planning if there are frontiers available
-    if(frontiers_.frontiers.size() > 100)
+    if(frontiers_.frontiers.size() > 0)
     {
         ROS_INFO("Exploooooriiiiiiiiiiiiiing");
         ROS_DEBUG_STREAM("Pos controller status: " << pos_ctrl_status_);

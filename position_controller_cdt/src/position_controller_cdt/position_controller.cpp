@@ -142,8 +142,8 @@ void PositionController::run()
                 // Compute control law (simple proportional (P) controller)
                 vel_x = linear_gain_ * distance_error;
                 vel_theta = heading_gain_ * heading_error + -orientation_gain_ * orientation_error;
-                vel_theta = std::min(vel_theta,max_vel_theta);
-                vel_theta = std::max(vel_theta,-max_vel_theta);
+                // vel_theta = std::min(vel_theta,max_vel_theta);
+                // vel_theta = std::max(vel_theta,-max_vel_theta);
                 
                 ROS_INFO_STREAM_THROTTLE(0.2, "Vel: (" << vel_x << ", " << vel_theta << "). This message is throttled (0.2s)");
             }

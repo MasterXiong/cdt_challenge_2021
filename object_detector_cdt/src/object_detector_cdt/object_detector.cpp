@@ -71,6 +71,7 @@ void ObjectDetector::imageCallback(const sensor_msgs::ImageConstPtr &in_msg)
 
     double x, y, theta;
     getRobotPose(x, y, theta);
+    std::string object_class;
 
     // Convert message to OpenCV image
     convertMessageToImage(in_msg, image, timestamp);
@@ -78,17 +79,47 @@ void ObjectDetector::imageCallback(const sensor_msgs::ImageConstPtr &in_msg)
     // Recognize object
     // Dog
     // TODO: This only publishes the first time we detect the dog
-    // if(!wasObjectDetected("dog")) // TODO: implement a better check
+    object_class = "dog";
+    if(!wasObjectDetected(object_class)) // TODO: implement a better check
     {
         cdt_msgs::Object new_object;
-        bool valid_object = recognizeObject(image, timestamp, x, y, theta, new_object,"dog");
-
-        // If recognized, add to list of detected objects
+        bool valid_object = recognizeObject(image, timestamp, x, y, theta, new_object, object_class);
         if (valid_object)
         {
             detected_objects_.objects.push_back(new_object);
         }
     }
+    object_class = "computer";
+    if(!wasObjectDetected(object_class)) // TODO: implement a better check
+    {
+        cdt_msgs::Object new_object;
+        bool valid_object = recognizeObject(image, timestamp, x, y, theta, new_object, object_class);
+        if (valid_object)
+        {
+            detected_objects_.objects.push_back(new_object);
+        }
+    }
+    object_class = "barrel";
+    if(!wasObjectDetected(object_class)) // TODO: implement a better check
+    {
+        cdt_msgs::Object new_object;
+        bool valid_object = recognizeObject(image, timestamp, x, y, theta, new_object, object_class);
+        if (valid_object)
+        {
+            detected_objects_.objects.push_back(new_object);
+        }
+    }
+    object_class = "barrow";
+    if(!wasObjectDetected(object_class)) // TODO: implement a better check
+    {
+        cdt_msgs::Object new_object;
+        bool valid_object = recognizeObject(image, timestamp, x, y, theta, new_object, object_class);
+        if (valid_object)
+        {
+            detected_objects_.objects.push_back(new_object);
+        }
+    }
+
     // TODO: Add other objects here
 
 
@@ -110,8 +141,9 @@ cv::Mat ObjectDetector::applyColourFilter(const cv::Mat &in_image_bgr, const Col
 {   
     
     std::string count_str = std::to_string(count);
+    std::string clr_str = std::to_string(colour);
     std::string input_path=folder_path+"input.png";
-    std::string mask_path=folder_path+"mask.png";
+    std::string mask_path=folder_path+clr_str+"mask.png";
     std::string hsv_path=folder_path+"hsv.png";
     if (count==0){std::cout << "image saved to " + folder_path << std::endl;}
     
@@ -136,7 +168,7 @@ cv::Mat ObjectDetector::applyColourFilter(const cv::Mat &in_image_bgr, const Col
         ROS_ERROR_STREAM("[ObjectDetector::colourFilter] colour (" << colour << "  not implemented!");
     }
     
-    if (count == 2) {
+    if (count <5 and colour==Colour::YELLOW) {
         cv::imwrite(input_path, in_image_bgr);
         cv::imwrite(mask_path, mask);
         cv::imwrite(hsv_path, in_image_hsv);
@@ -177,7 +209,7 @@ int ObjectDetector::checkBoxPosition(const double x, const double y, const doubl
 
     if (((x - width / 2. < 5.) or (x + width / 2. > 640. - 5.)) || ((y - height / 2. < 5.) or (y + height / 2. > 480. - 5.)))
     {
-        // std::cout << "Only a part of the object is in the image" << std::endl;
+        std::cout << "Only a part of the object is in the image" << std::endl;
         return 1;
     }
 
@@ -185,19 +217,19 @@ int ObjectDetector::checkBoxPosition(const double x, const double y, const doubl
     // i.e., width and height should be large enough
     else if ((width < 640 / 20.) || (height < 480. / 20.))
     {
-        // std::cout << "The object is not close enough to the camera" << std::endl;
+        std::cout << "The object is not close enough to the camera" << std::endl;
         return 2;
     }
 
     // condition 3: the object should be close to the center of the image
-    else if ((d_x_to_center > 640. / 20.) || (d_y_to_center > 480. / 20.))
+    else if ((d_x_to_center > 640. / 11.) || (d_y_to_center > 480. / 11.))
     {
-        // std::cout << "The object is not close enough to the image center" << std::endl;
+        std::cout << "The object is not close enough to the image center" << d_x_to_center << " " << d_y_to_center << std::endl;
         return 3;
     }
 
     else {
-        // std::cout << "Successfully detect" << std::endl;
+        std::cout << "Successfully detect" << std::endl;
         return 0;
     }
 
@@ -212,9 +244,16 @@ bool ObjectDetector::recognizeObject(const cv::Mat &in_image, const ros::Time &i
     double dog_image_center_y;
     double dog_image_height;
     double dog_image_width;
+    double object_real_height;
+    Colour colour;
+    if (object_class == "dog") {object_real_height = dog_real_height_; colour = Colour::RED;}
+    else if (object_class == "barrel") {object_real_height = barrel_real_height_; colour = Colour::YELLOW;}
+    else if (object_class == "barrow") {object_real_height = barrow_real_height_; colour = Colour::GREEN;}
+    else if (object_class == "computer") {object_real_height = computer_real_height_; colour = Colour::BLUE;}
+    else ROS_ERROR_STREAM("[ObjectDetector::recognizeObject] object_class (" << object_class << "  not implemented!");
 
     // TODO: the functions we use below should be filled to make this work
-    cv::Mat in_image_red = applyColourFilter(in_image, Colour::RED);
+    cv::Mat in_image_red = applyColourFilter(in_image, colour);
     // cv::Mat in_image_red = applyColourFilter(in_image, Colour::YELLOW);
     cv::Mat in_image_bounding_box = applyBoundingBox(in_image_red, dog_image_center_x, dog_image_center_y, dog_image_width, dog_image_height);
     int check_box = checkBoxPosition(dog_image_center_x, dog_image_center_y, dog_image_width, dog_image_height);
@@ -225,7 +264,7 @@ bool ObjectDetector::recognizeObject(const cv::Mat &in_image, const ros::Time &i
 
     // We convert the image position in pixels into "real" coordinates in the camera frame
     // We use the intrinsics to compute the depth
-    double depth = dog_real_height_ / dog_image_height * camera_fy_;
+    double depth = object_real_height / dog_image_height * camera_fy_;
     //{std::cout << "depth " << depth << object_class << " " << height << dog_image_height << std::endl;}
     // We now back-project the center using the  pinhole camera model
     // The result is in camera coordinates. Camera coordinates are weird, see note below
