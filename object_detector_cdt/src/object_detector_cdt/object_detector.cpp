@@ -162,7 +162,7 @@ cv::Mat ObjectDetector::applyColourFilter(const cv::Mat &in_image_bgr, const Col
         // inRange(in_image_hsv, cv::Scalar(  170,  0,  0), cv::Scalar( 180, 255, 255), mask);
         // cv::Mat mask = mask1 | mask2;
     } else if (colour == Colour::YELLOW) {
-        inRange(in_image_hsv, cv::Scalar(  28,  230,  20), cv::Scalar( 33, 255, 255), mask);
+        inRange(in_image_hsv, cv::Scalar(  28,  230,  30), cv::Scalar( 33, 255, 255), mask);
     } else if (colour == Colour::GREEN) {
         inRange(in_image_hsv, cv::Scalar(  55,  200,  0), cv::Scalar( 65, 255, 255), mask);
     } else if (colour == Colour::BLUE) {
@@ -171,7 +171,7 @@ cv::Mat ObjectDetector::applyColourFilter(const cv::Mat &in_image_bgr, const Col
         // Report color not implemented
         ROS_ERROR_STREAM("[ObjectDetector::colourFilter] colour (" << colour << "  not implemented!");
     }
-    int dilation_size=1;
+    int dilation_size=2;
     cv::Mat element = getStructuringElement( cv::MORPH_RECT,
                     cv::Size( 2*dilation_size + 1, 2*dilation_size+1 ));
     cv::erode(mask,erroded_img,element);
@@ -214,7 +214,7 @@ cv::Mat ObjectDetector::applyBoundingBox(const cv::Mat1b &in_mask, double &x, do
     return drawing;
 }
 
-int ObjectDetector::checkBoxPosition(const double x, const double y, const double width, const double height) {
+int ObjectDetector::checkBoxPosition(const double x, const double y, const double width, const double height,Colour color) {
     // condition 1: a part of the object is missed from the camera
     // i.e., the bounding box is close to the image bound
     double d_x_to_center = abs(x - camera_cx_);
@@ -228,19 +228,23 @@ int ObjectDetector::checkBoxPosition(const double x, const double y, const doubl
 
     // condition 2: the object should not be far away from the camera
     // i.e., width and height should be large enough
-    else if ((width < 640 / 20.) || (height < 480. / 20.))
+    else if ((width < 640 / 10.) || (height < 480. / 10.))
     {
         std::cout << "The object is not close enough to the camera" << std::endl;
         return 2;
     }
 
     // condition 3: the object should be close to the center of the image
-    else if ((d_x_to_center > 640. / 10) || (d_y_to_center > 480. / 10))
+    else if (((d_x_to_center > 640. / 10) || (d_y_to_center > 480. / 10)) && (color!=Colour::YELLOW))
     {
         std::cout << "The object is not close enough to the image center" << d_x_to_center << " " << d_y_to_center << std::endl;
         return 3;
     }
-
+    else if ((d_x_to_center > 640. / 5) || (d_y_to_center > 480. / 5))
+    {
+        std::cout << "The yellow object is not close enough to the image center" << d_x_to_center << " " << d_y_to_center << std::endl;
+        return 3;
+    }
     else {
         std::cout << "Successfully detect" << std::endl;
         return 0;
@@ -269,7 +273,7 @@ bool ObjectDetector::recognizeObject(const cv::Mat &in_image, const ros::Time &i
     cv::Mat in_image_red = applyColourFilter(in_image, colour);
     // cv::Mat in_image_red = applyColourFilter(in_image, Colour::YELLOW);
     cv::Mat in_image_bounding_box = applyBoundingBox(in_image_red, dog_image_center_x, dog_image_center_y, dog_image_width, dog_image_height);
-    int check_box = checkBoxPosition(dog_image_center_x, dog_image_center_y, dog_image_width, dog_image_height);
+    int check_box = checkBoxPosition(dog_image_center_x, dog_image_center_y, dog_image_width, dog_image_height,colour);
     // std::cout << object_class << std::endl;
     if (check_box!=0)
         return false;

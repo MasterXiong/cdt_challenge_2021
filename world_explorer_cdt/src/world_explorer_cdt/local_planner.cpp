@@ -67,7 +67,7 @@ std::vector<Eigen::Vector2d> LocalPlanner::searchFrontiers(cdt_msgs::Frontiers f
         else {
 
             
-            f.cost_ = 0.3*std::abs(heading_error);
+            // f.cost_ = 0.3*std::abs(heading_error);
             f.cost_ += std::abs(2.5-distance2robot);
 
             for (auto node : exploration_graph.nodes) {
