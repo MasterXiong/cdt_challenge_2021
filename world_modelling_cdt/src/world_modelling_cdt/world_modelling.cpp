@@ -15,7 +15,8 @@ WorldModelling::WorldModelling(ros::NodeHandle &nh)
       d_square_to_last_node_threshold(1.), 
       d_square_neighbor_threshold(4.), 
       traversable_threshold(.2), 
-      frontier_distance(4.)
+      frontier_distance(4.), 
+      min_d_frontier_pose(1.)
 {
     // Read parameters
     readParameters(nh);
@@ -181,12 +182,25 @@ void WorldModelling::findCurrentFrontiers(const float &x, const float &y, const 
     std::cout << x << "  " << y << "  " << theta << std::endl;
     float x_new, y_new;
     float yaw, angle;
-    for (int i = -2; i <= 2; ++i) {
+    float d_frontier_node;
+    for (int i = -3; i <= 3; ++i) {
         yaw = float(i * 30);
         angle = theta + yaw * PI / 180.;
         x_new = x + frontier_distance * std::cos(angle);
         y_new = y + frontier_distance * std::sin(angle);
         if (traversability_.atPosition("traversability", grid_map::Position(x_new, y_new)) == 1) {
+            // delete the frontier if it is close to any node in the pose graph
+            bool close_to_pose_graph = false;
+            for (auto node : exploration_graph_.nodes) {
+                d_frontier_node = std::hypot(x_new - node.pose.position.x, x_new - node.pose.position.y);
+                if (d_frontier_node < 2) {
+                    close_to_pose_graph = true;
+                    break;
+                }
+            }
+            if (close_to_pose_graph)
+                continue;
+            // add a new frontier
             geometry_msgs::PointStamped frontier;
             frontier.header.stamp = time;                  // We store the time the frontier was created
             frontier.header.frame_id = input_fixed_frame_; // And the frame it's referenced to
@@ -240,10 +254,22 @@ void WorldModelling::updateFrontiers(const float &x, const float &y, const float
     grid_map::Position query_point;
 
     // Iterate
+    float d_frontier_node;
     for (auto frontier : frontiers_.frontiers)
     {
         const float &frontier_x = frontier.point.x;
         const float &frontier_y = frontier.point.y;
+
+        bool close_to_pose_graph = false;
+        for (auto node : exploration_graph_.nodes) {
+            d_frontier_node = std::hypot(frontier_x - node.pose.position.x, frontier_y - node.pose.position.y);
+            if (d_frontier_node < 2) {
+                close_to_pose_graph = true;
+                break;
+            }
+        }
+        if (close_to_pose_graph)
+            continue;
 
         // Compute distance to frontier
         float distance_to_frontier = std::hypot(frontier_x - x, frontier_y - y);

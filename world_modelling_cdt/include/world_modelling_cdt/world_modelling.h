@@ -67,6 +67,7 @@ class WorldModelling
     float d_square_neighbor_threshold;
     float traversable_threshold;
     float frontier_distance;
+    float min_d_frontier_pose;
 
 public:
     // Constructor
