@@ -4,6 +4,11 @@ GraphPlanner::GraphPlanner(){}
 
 GraphPlanner::~GraphPlanner(){}
 
+void GraphPlanner::findGraphStart(double &x, double &y) {
+    x = graph_.nodes[0].pose.position.x;
+    y = graph_.nodes[0].pose.position.y;
+}
+
 void GraphPlanner::setGraph(const cdt_msgs::Graph& graph)
 {
     graph_ = graph;

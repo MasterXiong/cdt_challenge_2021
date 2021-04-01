@@ -28,6 +28,8 @@ public:
                   Eigen::Vector2d goal_pose,
                   std::vector<Eigen::Vector2d>& route);
 
+    void findGraphStart(double &x, double &y);
+
 private:
     // Internal methods
     void findClosestNodes(const double& robot_x, const double& robot_y , const double& robot_theta, 
