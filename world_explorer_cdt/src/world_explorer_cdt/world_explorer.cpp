@@ -163,7 +163,8 @@ void WorldExplorer::plan()
         // TODO Choose a frontier, work it off if it is valid and send it to the position controller
         // here we just use the first one as an example
         Eigen::Vector2d pose_goal = goals.at(0);
-
+        std::cout << "x,y "<< robot_x << ","<< robot_y << std::endl;
+        std::cout << "goals "<< pose_goal << "\n"  << std::endl;
         // Local Planner (RRT)
         // TODO Plan a route to the most suitable frontier
         local_planner_.planPath(robot_x, robot_y, robot_theta, pose_goal, route_);
@@ -171,7 +172,7 @@ void WorldExplorer::plan()
         // some more reasoning to be done here....
 
         // TODO Graph Planner
-        graph_planner_.planPath(robot_x, robot_y, robot_theta, pose_goal, route_);
+        // graph_planner_.planPath(robot_x, robot_y, robot_theta, pose_goal, route_);
 
         // If we have route targets (frontiers), work them off and send to position controller
         if(route_.size() > 0)
@@ -182,6 +183,7 @@ void WorldExplorer::plan()
             target.pose.position.y = route_.begin()->y();
             target.pose.position.z = 0.25;
             target.header.frame_id = goal_frame_;
+            
             goal_pub_.publish(target);
             ROS_DEBUG_STREAM("Sending target " << route_.begin()->transpose());
 
