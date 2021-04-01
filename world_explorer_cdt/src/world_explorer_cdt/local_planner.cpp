@@ -1,5 +1,6 @@
 #include <world_explorer_cdt/local_planner.h>
 #include <math.h>
+#include <iostream>
 
 LocalPlanner::LocalPlanner()
 {
@@ -232,14 +233,23 @@ bool LocalPlanner::isPoseValid(const Eigen::Isometry3d& pose)
     }
 
     // check the validity of the edge points themselfs
+    float x, y;
     for (int j = 0; j < corner_points.size(); ++j)
     {
+        x = corner_points[j](0);
+        y = corner_points[j](1);
+        //std::cout << x << "  " << y << std::endl;
         // TODO check that the corner points are valid (to make sure the robot itself is in a valid pose)
+        try {
+            if (traversability_.atPosition("traversability", grid_map::Position(x, y)) != 1)
+                return false;
+        } catch(...) {
+            continue;
+        }
         // return false if not valid...
-        // double a;
-        // std::cout << corner_points.at(j)(0)<<std::endl;
-        
-        continue;
+
+        //continue;
+
     }
     // std::cout << "--------------------------"<<std::endl;
 
