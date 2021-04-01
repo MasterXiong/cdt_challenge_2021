@@ -65,7 +65,7 @@ public:
     void setPlanningTime(double planning_time){ planning_time_ = planning_time; };
 
     // Main methods
-    std::vector<Eigen::Vector2d> searchFrontiers(cdt_msgs::Frontiers frontiers, 
+    std::vector<Eigen::Vector2d> searchFrontiers(cdt_msgs::Frontiers frontiers, cdt_msgs::Graph exploration_graph,
                                                  const double& robot_x, const double&  robot_y, const double&  robot_theta);
     
     bool planPath(const double& robot_x, const double& robot_y , const double& robot_theta,
