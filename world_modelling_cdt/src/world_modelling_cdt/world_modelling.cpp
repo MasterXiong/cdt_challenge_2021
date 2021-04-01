@@ -2,6 +2,7 @@
 #include <cmath>
 #include <iostream>
 #include <math.h>
+#include <algorithm>
 
 #define PI 3.14159265
 
@@ -12,9 +13,14 @@ WorldModelling::WorldModelling(ros::NodeHandle &nh)
       num_nodes_(0),
       first_node_(true),
       first_frontier_(true), 
+      // parameters for pose graph
       d_square_to_last_node_threshold(1.), 
       d_square_neighbor_threshold(4.), 
-      traversable_threshold(.2), 
+      // parameters for traversable map
+      elevation_threshold(.1), 
+      slope_threshold(.2), 
+      //slope_threshold()
+      // parameters for frontier generation
       frontier_distance(4.), 
       min_d_frontier_pose(1.)
 {
@@ -113,8 +119,6 @@ bool WorldModelling::updateGraph(const float &x, const float &y, const float &th
     if (d_square_to_last_node < d_square_to_last_node_threshold)
         return false;
 
-    std::cout << x_last_ << "  " << y_last_ << std::endl;
-
     // if the condition is satisfied, you should create a new node and add it to the graph
     // Here we briefly show how to fill the data
     cdt_msgs::GraphNode new_node;
@@ -167,11 +171,13 @@ void WorldModelling::computeTraversability(const grid_map::GridMap &grid_map)
             // TODO Fill the traversability at each position using some criterion based on the other layers
             // How can we figure out if an area is traversable or not?
             // YOu should fill with a 1.0 if it's traversable, and -1.0 in the other case
-            traversability_.at("traversability", *iterator) = 2 * (float)(traversability_.at("elevation", *iterator) < traversable_threshold) - 1.;
+            traversability_.at("traversability", *iterator) = (float)
+                ((traversability_.at("elevation", *iterator) < elevation_threshold) && 
+                 (traversability_.at("slope", *iterator) < slope_threshold));
         }
     }
 
-    traversability_.setBasicLayers({"traversability", "elevation"});
+    traversability_.setBasicLayers({"traversability", "elevation", "slope"});
 }
 
 void WorldModelling::findCurrentFrontiers(const float &x, const float &y, const float &theta, const ros::Time &time)

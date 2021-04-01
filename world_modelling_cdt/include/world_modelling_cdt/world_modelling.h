@@ -65,7 +65,8 @@ class WorldModelling
 
     float d_square_to_last_node_threshold;
     float d_square_neighbor_threshold;
-    float traversable_threshold;
+    float elevation_threshold;
+    float slope_threshold;
     float frontier_distance;
     float min_d_frontier_pose;
 
