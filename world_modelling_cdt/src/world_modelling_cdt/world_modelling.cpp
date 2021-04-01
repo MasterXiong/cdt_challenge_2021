@@ -15,7 +15,7 @@ WorldModelling::WorldModelling(ros::NodeHandle &nh)
       d_square_to_last_node_threshold(1.), 
       d_square_neighbor_threshold(4.), 
       traversable_threshold(.2), 
-      frontier_distance(3.)
+      frontier_distance(4.)
 {
     // Read parameters
     readParameters(nh);
@@ -175,22 +175,22 @@ void WorldModelling::findCurrentFrontiers(const float &x, const float &y, const 
 {
     // TODO: Here you need to create "frontiers" that denote the edges of the known space
     // They're used to guide robot to new places
+    current_frontiers_ = cdt_msgs::Frontiers();
     std::cout << x << "  " << y << "  " << theta << std::endl;
     float x_new, y_new;
     float yaw, angle;
     for (int i = -2; i <= 2; ++i) {
         yaw = float(i * 30);
-        angle = (theta + float(yaw)) * PI / 180.;
+        angle = theta + yaw * PI / 180.;
         x_new = x + frontier_distance * std::cos(angle);
         y_new = y + frontier_distance * std::sin(angle);
-        if (traversability_.atPosition("traversability", grid_map::Position(x, y)) == 1) {
+        if (traversability_.atPosition("traversability", grid_map::Position(x_new, y_new)) == 1) {
             geometry_msgs::PointStamped frontier;
             frontier.header.stamp = time;                  // We store the time the frontier was created
             frontier.header.frame_id = input_fixed_frame_; // And the frame it's referenced to
             frontier.point.x = x_new;                      // And the position, of course
             frontier.point.y = y_new;
             current_frontiers_.frontiers.push_back(frontier);
-            std::cout << "add a frontiers" << x_new << "  " << y_new << std::endl;
         }
     }
 
