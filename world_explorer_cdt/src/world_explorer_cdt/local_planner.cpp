@@ -31,7 +31,7 @@ void LocalPlanner::setMap(const grid_map::GridMap& map)
         ROS_ERROR("trav layer does not exist in map");   
 }
 
-std::vector<Eigen::Vector2d> LocalPlanner::searchFrontiers(cdt_msgs::Frontiers frontiers, 
+std::vector<Eigen::Vector2d> LocalPlanner::searchFrontiers(cdt_msgs::Frontiers frontiers, cdt_msgs::Graph exploration_graph,
                                                           const double& robot_x, const double&  robot_y, const double&  robot_theta)
 {
     // Preallocate some stuff
@@ -58,15 +58,25 @@ std::vector<Eigen::Vector2d> LocalPlanner::searchFrontiers(cdt_msgs::Frontiers f
     std::cout << "robot xy " << robot_x << " " << robot_y << std::endl;
     for(auto& f : frontier_costs){
         // We need to create a cost, lower cost is better                                 
-        double distance = std::hypot(f.x_ - robot_x, f.y_ - robot_y);
+        double distance2robot = std::hypot(f.x_ - robot_x, f.y_ - robot_y);
         float heading_error = wrapAngle(std::atan2(f.y_ - robot_y, f.x_ - robot_x) - robot_theta);
+        double distance2graph = 1000;
 
-        if (distance < 1) 
+        if (distance2robot < 1) 
             f.cost_ = 100;
         else {
-            std::cout << "f_x,y "<< f.x_ << " " << f.y_ << " d,theta "<< distance << " " << heading_error << " robot theta" << robot_theta << std::endl;
+
+            
             f.cost_ = std::abs(heading_error);
+            f.cost_ += std::abs(2.5-distance2robot);
+
+            for (auto node : exploration_graph.nodes) {
+                double d_square = std::pow(f.x_ - node.pose.position.x, 2) + std::pow(f.y_ - node.pose.position.y, 2);
+                if (distance2graph > d_square) distance2graph = d_square;
+            }
+            f.cost_ += 3 - distance2graph;
         }
+        std::cout << "f_x,y "<< f.x_ << " " << f.y_ << " cost d2robot "<<f.cost_ << distance2robot << " dist 2 graph " << distance2graph << std::endl;
 
         // frontier.cost_ = 1;
     }
@@ -237,8 +247,11 @@ bool LocalPlanner::isPoseValid(const Eigen::Isometry3d& pose)
             continue;
         }
         // return false if not valid...
+
         //continue;
+
     }
+    // std::cout << "--------------------------"<<std::endl;
 
     return true;
 }

@@ -158,7 +158,7 @@ void WorldExplorer::plan()
         getRobotPose2D(robot_x, robot_y, robot_theta);
         
         // Analyze and sort frontiers
-        std::vector<Eigen::Vector2d> goals = local_planner_.searchFrontiers(frontiers_, robot_x, robot_y, robot_theta);
+        std::vector<Eigen::Vector2d> goals = local_planner_.searchFrontiers(frontiers_, exploration_graph_, robot_x, robot_y, robot_theta);
 
         // TODO Choose a frontier, work it off if it is valid and send it to the position controller
         // here we just use the first one as an example
