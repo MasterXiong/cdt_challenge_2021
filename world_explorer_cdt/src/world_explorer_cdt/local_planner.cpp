@@ -1,4 +1,5 @@
 #include <world_explorer_cdt/local_planner.h>
+#include <math.h>
 
 LocalPlanner::LocalPlanner()
 {
@@ -53,10 +54,20 @@ std::vector<Eigen::Vector2d> LocalPlanner::searchFrontiers(cdt_msgs::Frontiers f
     }
 
     // TODO Compute cost combining information generated above, free to come up with other cost function terms
-    for(auto& frontier : frontier_costs){
+    std::cout << "robot xy " << robot_x << " " << robot_y << std::endl;
+    for(auto& f : frontier_costs){
         // We need to create a cost, lower cost is better                                 
- 
-        frontier.cost_ = 1;
+        double distance = std::hypot(f.x_ - robot_x, f.y_ - robot_y);
+        float heading_error = wrapAngle(std::atan2(f.y_ - robot_y, f.x_ - robot_x) - robot_theta);
+
+        if (distance < 1) 
+            f.cost_ = 100;
+        else {
+            std::cout << "f_x,y "<< f.x_ << " " << f.y_ << " d,theta "<< distance << " " << heading_error << " robot theta" << robot_theta << std::endl;
+            f.cost_ = std::abs(heading_error);
+        }
+
+        // frontier.cost_ = 1;
     }
 
     // We want to sort the frontiers using the costs previously computed
@@ -219,4 +230,15 @@ bool LocalPlanner::isPoseValid(const Eigen::Isometry3d& pose)
     }
 
     return true;
+}
+
+
+
+double LocalPlanner::wrapAngle(double x)
+{
+    // This method returns an angle between [-pi, pi]
+    x = fmod(x + M_PI, 2.0 * M_PI);
+    if (x < 0)
+        x += 2.0 * M_PI;
+    return x - M_PI;
 }
