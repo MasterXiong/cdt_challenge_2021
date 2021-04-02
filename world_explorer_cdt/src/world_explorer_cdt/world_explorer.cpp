@@ -11,7 +11,7 @@ WorldExplorer::WorldExplorer(ros::NodeHandle &nh)
     graph_sub_     = nh.subscribe(input_graph_topic_, 1, &WorldExplorer::graphCallback, this);
 
     position_stat_sub_ = nh.subscribe(input_pos_ctrl_topic_, 1, &WorldExplorer::positionCtrlCallback, this);
-
+    time=0;
     // Setup publisher
     goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>(output_goal_topic_, 10);
     plan_pub_ = nh.advertise<nav_msgs::Path>(output_plan_topic_, 10);
@@ -153,6 +153,7 @@ void WorldExplorer::plan()
     getRobotPose2D(robot_x, robot_y, robot_theta);
 
     // We only run the planning if there are frontiers available
+    
     if(frontiers_.frontiers.size() > 0)
     {
         ROS_INFO("Exploooooriiiiiiiiiiiiiing");
@@ -168,7 +169,11 @@ void WorldExplorer::plan()
         std::cout << "goals "<< pose_goal << "\n"  << std::endl;
         // Local Planner (RRT)
         // TODO Plan a route to the most suitable frontier
-        local_planner_.planPath(robot_x, robot_y, robot_theta, pose_goal, route_);
+        // if (time==0)
+            {local_planner_.planPath(robot_x, robot_y, robot_theta, pose_goal, route_);
+            // time = (time+1)%2;
+            // std::cout << time << std::endl;
+            }
 
         // some more reasoning to be done here....
 

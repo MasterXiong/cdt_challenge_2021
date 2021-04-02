@@ -81,7 +81,7 @@ class WorldExplorer
     // Planers
     LocalPlanner local_planner_;
     GraphPlanner graph_planner_;
-
+    int time;
     // Route
     std::vector<Eigen::Vector2d> route_;
     
@@ -92,7 +92,7 @@ public:
 private:
     // Read ROS parameters
     void readParameters(ros::NodeHandle &nh);
-
+    
     // service callback
     bool toggleExploration(cdt_msgs::ToggleExploration::Request &req,
                             cdt_msgs::ToggleExploration::Response & res);

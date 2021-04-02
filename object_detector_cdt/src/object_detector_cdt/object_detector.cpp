@@ -186,7 +186,7 @@ cv::Mat ObjectDetector::applyColourFilter(const cv::Mat &in_image_bgr, const Col
 
     }
     count = (count+1)%160;
-    std::cout << count << std::endl;
+    // std::cout << count << std::endl;
     // We return the mask, that will be used later
     mask = dilated_img;
     return mask;
@@ -219,7 +219,7 @@ int ObjectDetector::checkBoxPosition(const double x, const double y, const doubl
     // i.e., the bounding box is close to the image bound
     double d_x_to_center = abs(x - camera_cx_);
     double d_y_to_center = abs(y - camera_cy_);
-
+    std::cout << color << " "<<  d_x_to_center << " " << d_y_to_center<<"height"<<height<<"x y"<<x<<" "<<y <<std::endl;
     if (((x - width / 2. < 5.) or (x + width / 2. > 640. - 5.)) || ((y - height / 2. < 5.) or (y + height / 2. > 480. - 5.)))
     {
         std::cout << "Only a part of the object is in the image" << std::endl;
@@ -228,7 +228,7 @@ int ObjectDetector::checkBoxPosition(const double x, const double y, const doubl
 
     // condition 2: the object should not be far away from the camera
     // i.e., width and height should be large enough
-    else if ((width < 640 / 10.) || (height < 480. / 10.))
+    else if ((width < 640 / 12.) || (height < 480. / 12.))
     {
         std::cout << "The object is not close enough to the camera" << std::endl;
         return 2;
@@ -237,12 +237,13 @@ int ObjectDetector::checkBoxPosition(const double x, const double y, const doubl
     // condition 3: the object should be close to the center of the image
     else if (((d_x_to_center > 640. / 10) || (d_y_to_center > 480. / 10)) && (color!=Colour::YELLOW))
     {
+        if (height>200)return 0;
         std::cout << "The object is not close enough to the image center" << d_x_to_center << " " << d_y_to_center << std::endl;
         return 3;
     }
-    else if ((d_x_to_center > 640. / 5) || (d_y_to_center > 480. / 5))
+    else if ((d_x_to_center > 640. / 7) || (d_y_to_center > 480. / 7 || height<200)&&(color==Colour::YELLOW))
     {
-        std::cout << "The yellow object is not close enough to the image center" << d_x_to_center << " " << d_y_to_center << std::endl;
+        std::cout << "The yellow object is not close enough to the image center" << std::endl;
         return 3;
     }
     else {

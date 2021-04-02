@@ -17,8 +17,10 @@ WorldModelling::WorldModelling(ros::NodeHandle &nh)
       d_square_to_last_node_threshold(1.), 
       d_square_neighbor_threshold(4.), 
       // parameters for traversable map
-      elevation_threshold(.1), 
-      slope_threshold(.2), 
+    //   elevation_threshold(.1), 
+    //   slope_threshold(.2), 
+      elevation_threshold(.3), 
+      slope_threshold(.3), 
       //slope_threshold()
       // parameters for frontier generation
       frontier_distance(4.), 
@@ -199,8 +201,8 @@ void WorldModelling::findCurrentFrontiers(const float &x, const float &y, const 
             // delete the frontier if it is close to any node in the pose graph
             bool close_to_pose_graph = false;
             for (auto node : exploration_graph_.nodes) {
-                d_frontier_node = std::hypot(x_new - node.pose.position.x, x_new - node.pose.position.y);
-                if (d_frontier_node < distance_to_delete_frontier_) {
+                d_frontier_node = std::hypot(x_new - node.pose.position.x, y_new - node.pose.position.y);
+                if (d_frontier_node < 2) {
                     close_to_pose_graph = true;
                     break;
                 }
@@ -263,9 +265,9 @@ void WorldModelling::updateFrontiers(const float &x, const float &y, const float
 
     // Iterate
     float d_frontier_node;
-    for (auto frontier : current_frontiers_.frontiers)
+    for (auto frontier : frontiers_.frontiers)
     {
-        /*
+        
         const float &frontier_x = frontier.point.x;
         const float &frontier_y = frontier.point.y;
 
@@ -279,7 +281,7 @@ void WorldModelling::updateFrontiers(const float &x, const float &y, const float
         }
         if (close_to_pose_graph)
             continue;
-        */
+        
 
         // Compute distance to frontier
         /*
@@ -293,11 +295,11 @@ void WorldModelling::updateFrontiers(const float &x, const float &y, const float
         */
 
         // If the previous test are passed, add frontier to filtered list
-        frontiers_.frontiers.push_back(frontier);
+        current_frontiers_.frontiers.push_back(frontier);
     }
 
     // Finally, we update the frontiers using the current ones
-    //frontiers_ = filtered_frontiers;
+    frontiers_ = current_frontiers_;
 }
 
 void WorldModelling::publishData(const grid_map_msgs::GridMapInfo &in_grid_map_info)
